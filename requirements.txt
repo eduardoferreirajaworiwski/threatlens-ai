@@ -1,4 +1,6 @@
-feedparser==6.0.10
-requests==2.31.0
-google-generativeai
+streamlit
+feedparser
+requests
+google-genai
 python-dotenv
+pandas

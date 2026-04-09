@@ -1,6 +1,7 @@
 import os
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 # Configuração local de logging
@@ -21,7 +22,6 @@ class ThreatIntelAnalyzer:
             raise ValueError("Chave de API do Gemini ausente no arquivo .env.")
         
         # Instanciar a SDK da LLM
-        genai.configure(api_key=self.api_key)
         
         # Definição do System Prompt solicitado (Instruções Base)
         self.system_instruction = (
@@ -34,12 +34,9 @@ class ThreatIntelAnalyzer:
         )
 
         try:
-            # Inicializando a instância do modelo utilizando nosso System Prompt
-            self.model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                system_instruction=self.system_instruction
-            )
-            logging.info("Motor de IA carregado e inicializado: gemini-1.5-flash")
+            # Inicializando a instância do client
+            self.client = genai.Client(api_key=self.api_key)
+            logging.info("Motor de IA carregado e inicializado: gemini-2.5-flash")
         except Exception as e:
             logging.error(f"Erro Crítico de SDK ao instanciar o modelo Gemini: {e}")
             raise
@@ -71,10 +68,14 @@ class ThreatIntelAnalyzer:
         logging.info("Prompt construído. Enviando para a Google Generative AI (requer tempo de resposta)...")
         
         try:
-            # Chamada principal à API do Gemini
-            # O timeout geral ocorre por baixo dos panos na library,
-            # então envolvemos tudo como precaução geral de exceções REST e de RPC.
-            response = self.model.generate_content(context_string)
+            # Chamada principal à API do Gemini utilizando o novo SDK (google-genai)
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=context_string,
+                config=types.GenerateContentConfig(
+                    system_instruction=self.system_instruction
+                )
+            )
             
             if response and response.text:
                  logging.info("O Relatório Executivo de Cibersegurança foi concebido via AI.")
