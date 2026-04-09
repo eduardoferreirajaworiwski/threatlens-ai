@@ -1,26 +1,19 @@
-# Ambientes virtuais
 venv/
 env/
 .env
 .venv/
-env.bak/
-venv.bak/
 
-# Arquivos compilados do Python
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Configurações de IDE e editores locais
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Banco de dados locais
 *.db
 *.sqlite3
 
-# Outros arquivos temporários
 *.log
 .DS_Store

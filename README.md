@@ -1,71 +1,87 @@
-# AI Threat Sentinel 🛡️
+# Threat Lens AI 🔍
 
-**AI Threat Sentinel** is a globally-aware cybersecurity intelligence engine that empowers Security Operations (SecOps) teams. By aggregating active Open-Source Intelligence (OSINT) and employing advanced Large Language Models (Gemini), it provides a synthetic, tactical, and immediately actionable daily cybersecurity brief.
+**Threat Lens AI** is a real-time cybersecurity intelligence platform that aggregates Open-Source Intelligence (OSINT) from leading threat feeds and processes it through Google Gemini AI to deliver structured, actionable tactical reports.
 
-## 🧠 Architecture Overview: RAG-Inspired Intelligence
-Traditional AI tools often suffer from "hallucinations" (inventing non-existent data). To circumvent this critical flaw in cybersecurity intelligence, this engine utilizes **Retrieval-Augmented Generation (RAG) concepts**.
+## Architecture
 
-Instead of asking the LLM about recent threats (which it might not know about or might hallucinate), the architecture intercepts real-time RSS Feeds from top cybersecurity outlets:
+This engine uses **RAG-inspired (Retrieval-Augmented Generation)** concepts to eliminate AI hallucinations. Instead of asking the LLM about threats it may not know about, the system first intercepts real-time RSS feeds from top cybersecurity outlets, then feeds that verified context to the AI model for structured analysis.
+
+```
+RSS Feeds (OSINT) → Data Ingestion → Gemini AI (Structured JSON) → Dashboard + PDF Export
+```
+
+**Intelligence Sources:**
 - BleepingComputer
 - The Hacker News
 - Dark Reading
 
-The engine robustly ingests, filters, and standardizes these fresh sources into an active context payload. Only then is the information sent to the Google Gemini model. This ensures the output is **100% grounded in the real-time contextual payload**, resulting in accurate Executive Reports, mapped CVEs, and real-world attack vectors. 
+## Features
 
-## ✨ Features
-- **Automated OSINT Interception:** Scrapes multiple threat intelligence feeds concurrently.
-- **RAG-Grounded Analysis:** Guarantees zero hallucinations by grounding the Generative AI strictly within the ingested news parameters.
-- **SecOps Executive Dashboard:** A Streamlit-based UI, providing dark-mode tactile views and full source traceability (hyperlinks to original articles included on the sidebar).
+- **Automated OSINT Collection** — Scrapes multiple threat intelligence feeds concurrently with timeout control and error handling
+- **RAG-Grounded Analysis** — AI responses are strictly grounded in ingested news context, ensuring zero hallucinations
+- **Structured Output** — Pydantic schemas enforce strict JSON output from the LLM, preventing prompt injection
+- **Interactive Dashboard** — Streamlit-based dark-mode UI with real-time metrics, charts, and full source traceability
+- **Historical Tracking** — SQLite persistence for cross-day trend analysis of targeted sectors
+- **Executive PDF Export** — Dark-themed, terminal-styled PDF reports with metrics dashboard, CVE grid, and OSINT source feed
 
-## 🚀 Getting Started
+## Tech Stack
 
-Follow these steps to deploy and run the architecture locally.
+| Component | Technology |
+|---|---|
+| Frontend | Streamlit |
+| AI Engine | Google Gemini 2.5 Flash (`google-genai`) |
+| Data Schema | Pydantic (structured JSON output) |
+| OSINT Ingestion | `feedparser`, `requests` |
+| Persistence | SQLite3 |
+| PDF Generation | fpdf2 |
+| Visualization | Plotly, Pandas |
 
-### 1. Clone the project
+## Getting Started
+
+### 1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/threatlens-ai.git
 cd threatlens-ai
 ```
 
-### 2. Environment Setup
-We utilize a virtual environment to isolate the project dependencies constraint.
+### 2. Set up the environment
 ```bash
-# Create the virtual environment
 python3 -m venv venv
-
-# Activate it (Linux/MacOS)
 source venv/bin/activate
-# Or on Windows:
-# venv\Scripts\activate
-
-# Install required dependencies
 pip install -r requirements.txt
 ```
 
-### 3. API Key Configuration
-This project relies on Google's Gemini LLM. 
-1. Duplicate the example environment config file:
+### 3. Configure API key
 ```bash
 cp .env.example .env
 ```
-2. Open the newly created `.env` file and safely inject your Gemini API string:
-```env
+Edit `.env` and add your Gemini API key:
+```
 GEMINI_API_KEY=your_actual_api_key_here
 ```
-*(Need an API key? Deploy one for free at the [Google AI Studio](https://aistudio.google.com/app/apikey))*
+> Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-### 4. Run the Engine
-To launch the Streamlit frontend with full interactive OSINT tracing:
+### 4. Run
 ```bash
 streamlit run app.py
 ```
-Your local environment will spin up the SecOps dashboard automatically at `http://localhost:8501`.
+The dashboard will be available at `http://localhost:8501`.
 
-## 🛠️ Tech Stack
-- **Interface:** Streamlit
-- **Intelligence:** `google-genai` (Deploying Gemini 2.5 Flash)
-- **Data Gathering:** `feedparser`, `requests`
-- **Data Structuring/Config:** `pandas`, `python-dotenv`
+## Project Structure
+
+```
+threatlens-ai/
+├── app.py              # Streamlit dashboard (main entry point)
+├── ai_analyzer.py      # Gemini AI engine with Pydantic schema enforcement
+├── fetch_news.py       # OSINT RSS feed collector
+├── db_manager.py       # SQLite persistence layer
+├── pdf_exporter.py     # Dark-themed executive PDF generator
+├── requirements.txt    # Python dependencies
+├── .env.example        # Environment variable template
+└── .streamlit/
+    └── config.toml     # Streamlit theme configuration
+```
 
 ---
-*Developed as a modernized AI approach to Security Operations.*
+
+*Built as a modern AI-driven approach to Security Operations.*
