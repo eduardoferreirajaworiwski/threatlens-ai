@@ -17,6 +17,10 @@ __pycache__/
 *.swp
 *.swo
 
+# Banco de dados locais
+*.db
+*.sqlite3
+
 # Outros arquivos temporários
 *.log
 .DS_Store
