@@ -1,5 +1,8 @@
 import os
+import json
 import logging
+from typing import List
+from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -7,10 +10,17 @@ from dotenv import load_dotenv
 # Configuração local de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+class ThreatReport(BaseModel):
+    """Esquema Pydantic para forçar output estruturado da IA."""
+    top_threats: List[str] = Field(description="resumo das 3 principais ameaças")
+    cves: List[str] = Field(description="códigos CVE como 'CVE-2024-1234'. Se não houver, lista vazia")
+    targeted_sectors: List[str] = Field(description="ex: ['Finance', 'Healthcare']")
+    attack_vectors: List[str] = Field(description="ex: ['Ransomware', 'Phishing']")
+
 class ThreatIntelAnalyzer:
     """
-    Motor de Inteligência que utiliza as capacidades de LLM (gemini-1.5-flash) para
-    processar feeds OSINT em massa, realizando as análises e extrações pedidas.
+    Motor de Inteligência que utiliza as capacidades de LLM (gemini-2.5-flash) para
+    processar feeds OSINT em massa, realizando as análises estruturadas.
     """
     def __init__(self):
         # Carregamento seguro da GEMINI_API_KEY do sistema
@@ -21,97 +31,86 @@ class ThreatIntelAnalyzer:
             logging.error("Variável de ambiente 'GEMINI_API_KEY' não foi encontrada!")
             raise ValueError("Chave de API do Gemini ausente no arquivo .env.")
         
-        # Instanciar a SDK da LLM
-        
-        # Definição do System Prompt solicitado (Instruções Base)
+        # Definição do System Prompt otimizado para extração JSON
         self.system_instruction = (
-            "Você é um Analista de Inteligência de Ameaças Sênior. Analise as notícias fornecidas "
-            "e gere um Relatório Executivo de Cibersegurança em formato Markdown. O relatório deve conter:\n"
-            "1. 🚨 **Top 3 Ameaças Iminentes** (Identifique padrões ou ataques recorrentes nas notícias).\n"
-            "2. 🦠 **Vulnerabilidades & Malwares** (Liste os CVEs, ransomwares ou malwares citados).\n"
-            "3. 🎯 **Alvos Principais** (Setores ou empresas sob ataque hoje).\n"
-            "Seja direto, técnico e não invente dados. Use apenas as notícias fornecidas."
+            "Você é um Analista de Inteligência de Ameaças Sênior. Sua resposta DEVE OBRIGATORIAMENTE "
+            "ser um JSON puro respeitando o schema solicitado. Analise as notícias fornecidas "
+            "e extraia as top_threats, cves, targeted_sectors e attack_vectors."
+            "Não invente nada inexistente no contexto."
         )
 
         try:
-            # Inicializando a instância do client
             self.client = genai.Client(api_key=self.api_key)
-            logging.info("Motor de IA carregado e inicializado: gemini-2.5-flash")
+            logging.info("Motor de IA carregado: gemini-2.5-flash (Modo JSON Estruturado)")
         except Exception as e:
-            logging.error(f"Erro Crítico de SDK ao instanciar o modelo Gemini: {e}")
+            logging.error(f"Erro Crítico ao instanciar o modelo: {e}")
             raise
 
-    def generate_executive_report(self, news_list: list) -> str:
+    def generate_executive_report(self, news_list: list) -> dict:
         """
-        Recebe as notícias em formato de dicionário, aplica filtragem de contexto e
-        solicita ao engine de IA um sumário executivo sobre o cenário das ameaças.
+        Recebe as notícias, aplica filtragem e solicita ao engine de IA um
+        retorno no formato estrito do schema `ThreatReport` em JSON.
         """
         if not news_list:
-            logging.warning("O motor recusou a processar uma lista vazia.")
-            return "Erro: Sem dados para processar."
+            logging.warning("Nenhum dado recebido.")
+            return {"error": "Sem dados para processar."}
         
-        logging.info("Otimizando tokens para inteligência artificial...")
+        logging.info("Otimizando payload contextual...")
         
-        # Filtramos apenas a fonte, o título e o resumo de cada notícia.
-        # Descartando a data/link poupamos consideravelmente o contexto.
         optimized_context = []
         for i, news in enumerate(news_list):
             source = news.get("source", "Desconhecido")
             title = news.get("title", "Sem título")
             summary = news.get("summary", "Sem resumo")
-            
-            event_block = f"--- Evento SecOps {i+1} ---\nFonte: {source}\nTítulo: {title}\nResumo: {summary}\n"
-            optimized_context.append(event_block)
+            optimized_context.append(f"--- Evento SecOps {i+1} ---\nFonte: {source}\nTítulo: {title}\nResumo: {summary}\n")
             
         context_string = "\n".join(optimized_context)
 
-        logging.info("Prompt construído. Enviando para a Google Generative AI (requer tempo de resposta)...")
+        logging.info("Solicitando Extração JSON via AI...")
         
         try:
-            # Chamada principal à API do Gemini utilizando o novo SDK (google-genai)
+            # Integração com os recursos 'Structured Outputs' via Object Schema
             response = self.client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=context_string,
                 config=types.GenerateContentConfig(
-                    system_instruction=self.system_instruction
+                    system_instruction=self.system_instruction,
+                    response_mime_type="application/json",
+                    response_schema=ThreatReport,
                 )
             )
             
             if response and response.text:
-                 logging.info("O Relatório Executivo de Cibersegurança foi concebido via AI.")
-                 return response.text
+                 logging.info("Estrutura JSON validada e recebida.")
+                 try:
+                     # Parse do JSON String devolvido em um Python Dictionary real
+                     return json.loads(response.text)
+                 except json.JSONDecodeError:
+                     return {"error": "Falha no decode", "raw": response.text}
             else:
-                 logging.warning("Payload do modelo esteve vazio ou censurado pelos filtros base.")
-                 return "Erro de Modelagem: O Gemini retornou uma predição vazia ou bloqueada."
+                 return {"error": "Retorno vazio da API."}
 
-        # Captura extensiva (Timeout, Network Erros, Quota e etc)
         except Exception as e:
-            logging.error(f"Ocorreu uma falha grave na comunicação com o LLM: {str(e)}")
-            return f"**Erro Temporário de IA:** Não foi possível confeccionar o relatório no momento.\nDetalhe técnico: `{str(e)}`"
+            logging.error(f"Falha de IA: {str(e)}")
+            return {"error": str(e)}
 
 if __name__ == "__main__":
     from fetch_news import ThreatIntelNewsFetcher
     
-    # Demonstração autossuficiente caso o arquivo seja executado separadamente
     try:
-        # Coleta das últimas duas notícias de cada feed
         fetcher = ThreatIntelNewsFetcher(timeout=10)
         dados_osint = fetcher.fetch_latest_news(limit_per_feed=2)
         
-        # Iniciar o motor e gerar a inteligência
         analyzer = ThreatIntelAnalyzer()
-        relatorio = analyzer.generate_executive_report(dados_osint)
+        relatorio_json = analyzer.generate_executive_report(dados_osint)
         
         print("\n\n" + "="*70)
-        print(" RELATÓRIO DO MOTOR EXECUTIVO SEC-OPS ".center(70, " "))
+        print(" THREAT INTELLIGENCE (JSON STRUCTURED) ".center(70, " "))
         print("="*70 + "\n")
-        print(relatorio)
+        print(json.dumps(relatorio_json, indent=4, ensure_ascii=False))
         print("\n" + "="*70)
         
     except ValueError as val_err:
-        print(f"\n[!] Bloqueio de Configuração: {val_err}")
-        print("-> Verifique se renomeou corretamente seu .env e colocou sua API KEY.")
-    except ImportError as imp_err:
-        print(f"\n[!] Problema no módulo: {imp_err}")
+        print(f"\n[!] Bloqueio: {val_err}")
     except Exception as generic_err:
-        print(f"\n[!] Falha ao testar via terminal: {generic_err}")
+        print(f"\n[!] Falha terminal: {generic_err}")
