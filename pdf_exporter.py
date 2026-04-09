@@ -36,7 +36,7 @@ class ThreatPDF(FPDF):
         self.set_y(5)
         self.set_font('Courier', 'B', 20)
         self.set_text_color(*NEON_GREEN)
-        self.cell(0, 10, '> AI THREAT SENTINEL_', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        self.cell(0, 10, '> THREAT LENS AI_', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
         self.set_font('Courier', '', 7)
         self.set_text_color(*TEXT_DIM)
@@ -56,7 +56,7 @@ class ThreatPDF(FPDF):
         self.line(10, self.h - 15, self.w - 10, self.h - 15)
         self.set_font('Courier', '', 7)
         self.set_text_color(*TEXT_DIM)
-        self.cell(0, 10, f'AI Threat Sentinel  |  Page {self.page_no()}/{{nb}}  |  Powered by OSINT + Gemini AI', 0, 0, 'C')
+        self.cell(0, 10, f'Threat Lens AI  |  Page {self.page_no()}/{{nb}}  |  Powered by OSINT + Gemini AI', 0, 0, 'C')
 
 
 def _safe(text: str) -> str:
@@ -305,7 +305,7 @@ def generate_executive_pdf(report_data: dict, news_data: list) -> io.BytesIO:
     pdf.set_xy(pdf.l_margin, y + 1)
     pdf.set_font('Courier', 'B', 8)
     pdf.set_text_color(*NEON_GREEN)
-    pdf.cell(usable, 10, '> END OF BRIEFING  //  AI THREAT SENTINEL  //  STAY VIGILANT_', align='C')
+    pdf.cell(usable, 10, '> END OF BRIEFING  //  THREAT LENS AI  //  STAY VIGILANT_', align='C')
 
     pdf_bytes = pdf.output()
     return io.BytesIO(bytes(pdf_bytes))
